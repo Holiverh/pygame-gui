@@ -1,0 +1,13 @@
+
+VERY INCOMPLETE ATM
+
+Implements GUI features for PyGame. Should plug right into your existing
+PyGame installtion and code. Currently implementing the base functionality
+and widget set.
+
+Use of the distutils setup script might cause your PyGame
+installation to break due to the fact that an __init__.py is required
+for the package to be installed. As it attempts to instlal it self
+into PyGame's install directory this would result in PyGame's __init__.py
+being overwritten. To work around this at the moment we use a copy of
+PyGame 1.9.1's __init__.py.
