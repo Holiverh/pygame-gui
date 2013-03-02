@@ -223,6 +223,7 @@ class RootWindow(Window):
 		self._focus = None # Which window has keyboard focus
 		
 		self._previous_mouse_pos = pygame.mouse.get_pos()
+		self._mousedown_win = None
 		
 		Window.__init__(self, None,
 							width=self.surface.get_width(),
@@ -237,9 +238,13 @@ class RootWindow(Window):
 	
 	@focus.setter
 	def focus(self, window):
-		self._focus.trigger(BLUR)
+		if self._focus is not None:
+			self._focus.trigger(Window.BLUR)
+			
 		self._focus = window
-		self._focus.trigger(FOCUS)
+		
+		if self._focus is not None:
+			self._focus.trigger(Window.FOCUS)
 		
 	@property
 	def requested_width(self):
@@ -300,7 +305,24 @@ class RootWindow(Window):
 				self._previous_mouse_pos = current_pos
 			
 			elif event.type == pygame.MOUSEBUTTONDOWN:
-				pass
+				
+				for window in self.decendants:
+					if window.rect.collidepoint(event.pos):
+						window.trigger(Window.MOUSEDOWN)
+						
+						# Top-most window should receive the click event
+						# due to the way Window.decendants returns windows
+						if event.button == 1:
+							self._mousedown_win = window
+						
+			elif event.type == pygame.MOUSEBUTTONUP:
+				
+				for window in self.decendants:
+					if window.rect.collidepoint(event.pos):
+						window.trigger(Window.MOUSEUP)
+						
+						if event.button == 1 and window is self._mousedown_win:
+							window.trigger(Window.CLICK)
 			
 	def draw(self):
 		
