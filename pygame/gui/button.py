@@ -1,16 +1,14 @@
 
-import ui.window
-import ui.label
+import pygame.gui.window
+import pygame.gui.label
 
-class Button(ui.window.Window):
+class Button(pygame.gui.window.Window):
 	
 	def __init__(self, parent, **kwargs):
-		ui.window.Window.__init__(self, parent, **kwargs)
+		pygame.gui.window.Window.__init__(self, parent, **kwargs)
 		
-		self.label = ui.label.Label(self, **kwargs)
-		self.label.background = ui.window.background_colour((0xFF, 0, 0))
-		self.label.border_width = 0
-	
+		self.label = pygame.gui.label.Label(self, **{k: v for k, v in 
+						kwargs.iteritems() if k not in {"x", "y", "border_width"}})
 		self._border_width = self.border_width
 		
 		self.bind(Button.MOUSEOVER, self._on_mouseover)

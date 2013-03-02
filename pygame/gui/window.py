@@ -72,8 +72,8 @@ class Window(object):
 		print "{}{} ({}, {}) {}x{}".format(
 						" "*indent,
 						self.__class__.__name__,
-						self.x,
-						self.y,
+						self.actual_x,
+						self.actual_y,
 						self.actual_width,
 						self.actual_height)
 		for child in self.children:
@@ -81,7 +81,7 @@ class Window(object):
 	
 	@property
 	def decendants(self):
-		windows = self.children
+		windows = self.children[:]
 			
 		for child in self.children:
 			windows.extend(child.decendants)
@@ -138,18 +138,18 @@ class Window(object):
 		return window
 	
 	@property
-	def requested_width(self):
+	def requested_width(self):	
 		if type(self.width) is types.FloatType:
-			return int(round(self.width * self.parent.actual_width) + (self.padding / 2.0))
+			return int(round(self.width * self.parent.actual_width) + (2 * self.padding) + (2 * self.border_width))
 		else:
-			return int(self.width + (self.padding / 2.0))
+			return int(self.width + (2 * self.padding) + (2 * self.border_width))
 	
 	@property
 	def requested_height(self):
 		if type(self.height) is types.FloatType:
-			return int(round(self.height * self.parent.actual_height) + (self.padding / 2.0))
+			return int(round(self.height * self.parent.actual_height) + (2 * self.padding) + (2 * self.border_width))
 		else:
-			return int(self.height + (self.padding / 2.0))
+			return int(self.height + (2 * self.padding) + (2 * self.border_width))
 	
 	@property
 	def actual_height(self):
@@ -164,14 +164,14 @@ class Window(object):
 	@property
 	def requested_x(self):
 		if type(self.x) is types.FloatType:
-			return int(round(self.x * self.parent.actual_x))
+			return int(round(self.x * self.parent.actual_width))
 		else:
 			return int(self.x)
 	
 	@property
 	def requested_y(self):
 		if type(self.y) is types.FloatType:
-			return int(round(self.y * self.parent.actual_y))
+			return int(round(self.y * self.parent.actual_height))
 		else:
 			return int(self.y)
 	
@@ -185,8 +185,17 @@ class Window(object):
 	
 	@property
 	def rect(self):
+		""" pygame.Rect encompassing the entire window (including padding, etc) """
 		return pygame.Rect((self.actual_x, self.actual_y), (self.actual_width, self.actual_height))
-		
+	
+	@property
+	def content_rect(self):
+		""" Same as Window.rect but position adjusted for content padding """
+		rect = self.rect.move(self.padding + self.border_width, self.padding + self.border_width)
+		rect.height -= int(2 * (self.padding + self.border_width))
+		rect.width -= int(2 * (self.padding + self.border_width))
+		return rect
+	
 	def draw_background(self, surface):
 		if self.background is not None:
 			surface.blit(
@@ -216,6 +225,8 @@ class Window(object):
 class RootWindow(Window):
 	
 	def __init__(self):
+		
+		self.debug_draw = True
 		self.surface = pygame.display.get_surface()
 		self._focus = None # Which window has keyboard focus
 		
@@ -304,11 +315,15 @@ class RootWindow(Window):
 		for window in self.decendants:
 			window.draw_background(self.surface)
 			try:
-				self.surface.blit(window.draw(), window.rect)
+				self.surface.blit(window.draw(), window.content_rect)
 			except NotImplementedError:
 				pass
 			window.draw_border(self.surface)
-
+			
+			if self.debug_draw:
+				pygame.draw.rect(self.surface, (0, 255, 0), window.rect, 1)
+				pygame.draw.rect(self.surface, (0, 0, 255), window.content_rect, 1)
+	
 class ScrollableWindow(Window):
 	
 	SCROLLUP = generate_event_id()
