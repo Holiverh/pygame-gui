@@ -12,11 +12,6 @@ def generate_event_id():
 	_current_event_id += 1
 	return _current_event_id
 
-def background_colour(colour):
-	surface = pygame.Surface((1, 1)).convert()
-	surface.fill(colour)
-	return surface
-
 class Window(object):
 	
 	MOUSEOVER = generate_event_id()
@@ -30,12 +25,12 @@ class Window(object):
 	MOUSEDOWN = generate_event_id()
 	MOUSEUP = generate_event_id()
 	
-	default_background = background_colour((0xB7, 0xB7, 0xB7))
+	default_background = (0xB7, 0xB7, 0xB7)
 	default_border_colour = (0xC8, 0xC8, 0xC8)
 	default_border_width = 1
 	default_padding = 0
 	default_font_name = "Tahoma"
-	default_font_size = 12
+	default_font_size = 14
 	default_font_colour = (0, 0, 0)
 	default_font_aa = True
 	
@@ -198,10 +193,7 @@ class Window(object):
 	
 	def draw_background(self, surface):
 		if self.background is not None:
-			surface.blit(
-						pygame.transform.smoothscale(self.background, (self.actual_width, self.actual_height)),
-						self.rect
-						)
+			pygame.draw.rect(surface, self.background, self.rect)
 	
 	def draw_border(self, surface):
 		pygame.draw.rect(surface, self.border_colour, self.rect, self.border_width)
@@ -226,7 +218,7 @@ class RootWindow(Window):
 	
 	def __init__(self):
 		
-		self.debug_draw = True
+		self.debug_draw = False
 		self.surface = pygame.display.get_surface()
 		self._focus = None # Which window has keyboard focus
 		
