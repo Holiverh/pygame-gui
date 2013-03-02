@@ -17,4 +17,4 @@ class Label(pygame.gui.window.Window):
 		return int(self.font.size(self.text)[1] + (2 * self.padding) + (2 * self.border_width))
 	
 	def draw(self):
-		return self.font.render(self.text, self.font_aa, self.font_colour)
+		self.surface = self.font.render(self.text, self.font_aa, self.font_colour)

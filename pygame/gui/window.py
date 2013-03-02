@@ -25,9 +25,9 @@ class Window(object):
 	MOUSEDOWN = generate_event_id()
 	MOUSEUP = generate_event_id()
 	
-	default_background = (0xB7, 0xB7, 0xB7)
+	default_background = (0xd3, 0xd1, 0xcb)
 	default_border_colour = (0xC8, 0xC8, 0xC8)
-	default_border_width = 1
+	default_border_width = 0
 	default_padding = 0
 	default_font_name = "Tahoma"
 	default_font_size = 14
@@ -37,6 +37,14 @@ class Window(object):
 	_font_cache = {}
 	
 	def __init__(self, parent=None, **kwargs):
+		
+		self.surface = None
+		self.surface_area = None
+		self.redraw = True
+		# Whether the RootWindow should let the Window redraw it self.
+		# Is set to False if the call to draw() completes without
+		# errors. Redraw only occurs once the RootWindow needs it to;
+		# to force a redraw call draw() directly.
 		
 		self.parent = parent
 		self.children = []
@@ -191,14 +199,12 @@ class Window(object):
 		rect.width -= int(2 * (self.padding + self.border_width))
 		return rect
 	
-	def draw_background(self, surface):
-		if self.background is not None:
-			pygame.draw.rect(surface, self.background, self.rect)
-	
-	def draw_border(self, surface):
-		pygame.draw.rect(surface, self.border_colour, self.rect, self.border_width)
-	
-	def draw(self): raise NotImplementedError
+	def draw(self):
+		"""
+			To be implemented by subclasses. Renders the window contents
+			to the Window instance's surface. 
+		"""
+		raise NotImplementedError
 	
 	def grab_focus(self):
 		self.root_window.focus = self
@@ -219,18 +225,19 @@ class RootWindow(Window):
 	def __init__(self):
 		
 		self.debug_draw = False
-		self.surface = pygame.display.get_surface()
 		self._focus = None # Which window has keyboard focus
 		
 		self._previous_mouse_pos = pygame.mouse.get_pos()
 		self._mousedown_win = None
 		
 		Window.__init__(self, None,
-							width=self.surface.get_width(),
-							height=self.surface.get_height(),
+							width=pygame.display.get_surface().get_width(),
+							height=pygame.display.get_surface().get_height(),
 							background=None,
 							border_width=0
 						)
+		
+		self.surface = pygame.display.get_surface()
 		
 	@property
 	def focus(self):
@@ -323,16 +330,48 @@ class RootWindow(Window):
 						
 						if event.button == 1 and window is self._mousedown_win:
 							window.trigger(Window.CLICK)
+	
+	def draw_window_background(self, window):
+		if window.background is not None:
+			pygame.draw.rect(self.surface, window.background, window.rect)
+	
+	def draw_window_border(self, window):
+		if self.border_width > 0:
+			pygame.draw.rect(self.surface, window.border_colour, window.rect, window.border_width)
+	
+	def draw_window_contents(self, window):
+		if window.redraw:
+			try:
+				window.draw()
+				window.redraw = False
+			except NotImplementedError:
+				pass
+			
+		if window.surface is not None:
+			if (window.surface.get_height() > window.content_rect.height
+				or window.surface.get_width() > window.content_rect.width):
+				# If the window's surface exceeds the allocated space
+				# clip it down to correct size. Does mean is surface_area
+				# specifies an area smaller than the content_rect it will
+				# be ignored.
+				surface = pygame.Surface(window.content_rect.size)
+				surface.blit(window.surface, (0, 0), window.surface_area)
+				self.surface.blit(surface, window.content_rect)
+			else:
+				self.surface.blit(window.surface, window.content_rect, window.surface_area)
 			
 	def draw(self):
 		
 		for window in self.decendants:
-			window.draw_background(self.surface)
 			try:
-				self.surface.blit(window.draw(), window.content_rect)
-			except NotImplementedError:
-				pass
-			window.draw_border(self.surface)
+				self.draw_window_background(window)
+				self.draw_window_contents(window)
+				self.draw_window_border(window)
+			except:
+				print "Couldn't draw {}".format(window.__class__.__name__)
+				import pprint
+				pprint.pprint(window.__dict__)
+				raise
 			
 			if self.debug_draw:
 				pygame.draw.rect(self.surface, (0, 255, 0), window.rect, 1)
