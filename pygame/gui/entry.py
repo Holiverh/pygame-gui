@@ -7,6 +7,7 @@ class Entry(pygame.gui.window.Window):
 	default_padding = 2
 	default_background = (0xff, 0xff, 0xff)
 	default_border_width = 1
+	default_border_style = pygame.gui.window.Window.BORDER_STYLE_INSET
 	
 	def __init__(self, parent, **kwargs):
 		pygame.gui.window.Window.__init__(self, parent, **kwargs)

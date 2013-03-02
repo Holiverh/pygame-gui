@@ -3,6 +3,8 @@ import pygame.gui.window
 
 class Label(pygame.gui.window.Window):
 	
+	default_padding = 2
+	
 	def __init__(self, parent, **kwargs):
 		pygame.gui.window.Window.__init__(self, parent, **kwargs)
 		

@@ -25,9 +25,14 @@ class Window(object):
 	MOUSEDOWN = generate_event_id()
 	MOUSEUP = generate_event_id()
 	
+	BORDER_STYLE_SOLID = 1
+	BORDER_STYLE_INSET = 2
+	BORDER_STYLE_OUTSET = 3
+	
 	default_background = (0xd3, 0xd1, 0xcb)
-	default_border_colour = (0xC8, 0xC8, 0xC8)
+	default_border_colour = (0x48, 0x48, 0x48)
 	default_border_width = 0
+	default_border_style = BORDER_STYLE_SOLID
 	default_padding = 0
 	default_font_name = "Tahoma"
 	default_font_size = 14
@@ -64,6 +69,7 @@ class Window(object):
 		self.background = kwargs.get("background", self.__class__.default_background)
 		self.border_width = kwargs.get("border_width", self.__class__.default_border_width)
 		self.border_colour = kwargs.get("border_colour", self.__class__.default_border_colour)
+		self.border_style = kwargs.get("border_style", self.__class__.default_border_style)
 		self.padding = kwargs.get("padding", self.__class__.default_padding)
 		self.font_name = kwargs.get("font", self.__class__.default_font_name)
 		self.font_colour = kwargs.get("font_colour", self.__class__.default_font_colour)
@@ -234,7 +240,6 @@ class RootWindow(Window):
 							width=pygame.display.get_surface().get_width(),
 							height=pygame.display.get_surface().get_height(),
 							background=None,
-							border_width=0
 						)
 		
 		self.surface = pygame.display.get_surface()
@@ -336,9 +341,33 @@ class RootWindow(Window):
 			pygame.draw.rect(self.surface, window.background, window.rect)
 	
 	def draw_window_border(self, window):
-		if self.border_width > 0:
+
+		if window.border_width < 1:
+			return
+			
+		if window.border_style == Window.BORDER_STYLE_SOLID:
 			pygame.draw.rect(self.surface, window.border_colour, window.rect, window.border_width)
-	
+			
+		elif window.border_style == Window.BORDER_STYLE_OUTSET:
+
+			lolight = window.border_colour
+			hilight = [sum(cs) / len(cs) for cs in zip(lolight, (255, 255, 255), (255, 255, 255))]
+			
+			pygame.draw.line(self.surface, hilight, window.rect.topleft, window.rect.topright, window.border_width)
+			pygame.draw.line(self.surface, hilight, window.rect.topleft, window.rect.bottomleft, window.border_width)
+			pygame.draw.line(self.surface, lolight, window.rect.bottomleft, window.rect.bottomright, window.border_width)
+			pygame.draw.line(self.surface, lolight, window.rect.bottomright, window.rect.topright, window.border_width)
+		
+		elif window.border_style == Window.BORDER_STYLE_INSET:
+
+			lolight = window.border_colour
+			hilight = [sum(cs) / len(cs) for cs in zip(lolight, (255, 255, 255), (255, 255, 255))]
+			
+			pygame.draw.line(self.surface, lolight, window.rect.topleft, window.rect.topright, window.border_width)
+			pygame.draw.line(self.surface, lolight, window.rect.topleft, window.rect.bottomleft, window.border_width)
+			pygame.draw.line(self.surface, hilight, window.rect.bottomleft, window.rect.bottomright, window.border_width)
+			pygame.draw.line(self.surface, hilight, window.rect.bottomright, window.rect.topright, window.border_width)
+		
 	def draw_window_contents(self, window):
 		if window.redraw:
 			try:
