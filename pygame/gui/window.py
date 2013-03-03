@@ -54,15 +54,14 @@ class Window(object):
 		self.parent = parent
 		self.children = []
 		self.callbacks = {}
-		
-		if self.parent is not None:
-			self.parent.add_window(self)
+
+		self.reparent(parent)
 		
 		self._kwargs = kwargs
 		
 		# Float for relative dimensions/positions, integer for absolute
 		self.width = kwargs.get("width", 1.0)
-		self.height = kwargs.get("height", 1.0)
+		self.height = kwargs.get("height", 0)
 		self.x = kwargs.get("x", 0)
 		self.y = kwargs.get("y", 0)
 		
@@ -75,7 +74,7 @@ class Window(object):
 		self.font_colour = kwargs.get("font_colour", self.__class__.default_font_colour)
 		self.font_size = kwargs.get("font_size", self.__class__.default_font_size)
 		self.font_aa = kwargs.get("font_aa", self.__class__.default_font_aa)
-	
+		
 	def _print_graph(self, indent=0):
 		
 		print "{}{} ({}, {}) {}x{}".format(
@@ -86,7 +85,7 @@ class Window(object):
 						self.actual_width,
 						self.actual_height)
 		for child in self.children:
-			child._print_graph(indent+4)
+			child._print_graph(indent+2)
 	
 	@property
 	def decendants(self):
@@ -125,11 +124,21 @@ class Window(object):
 				["font_name", "font_colour", "font_size", "font_aa"]):
 			setattr(self, attr, value)
 	
-	def add_window(self, window):
-		""" Adds the window to the list of children and sets its parent attribute. """
-		
-		window.parent = self
-		self.children.append(window)
+	def reparent(self, new_parent):
+		"""
+			Removes self from current parent's list of children and
+			then adds it self to the new parent's, updating the parent
+			attribute as appropriate.
+		"""
+		if self.parent is not None:
+			try:
+				self.parent.children.remove(self)
+			except ValueError:
+				pass
+				
+		self.parent = new_parent
+		if self.parent is not None:
+			self.parent.children.append(self)
 	
 	def focus(self):
 		""" Sets the window to recieve keyboard input. """
@@ -147,42 +156,48 @@ class Window(object):
 		return window
 	
 	@property
-	def requested_width(self):	
+	def requested_width(self):
 		if type(self.width) is types.FloatType:
-			return int(round(self.width * self.parent.actual_width) + (2 * self.padding) + (2 * self.border_width))
+			return int(round(self.width * self.parent.actual_width) + 2 * (self.padding + self.border_width))
 		else:
-			return int(self.width + (2 * self.padding) + (2 * self.border_width))
+			return int(self.width + 2 * (self.padding + self.border_width))
 	
 	@property
 	def requested_height(self):
 		if type(self.height) is types.FloatType:
-			return int(round(self.height * self.parent.actual_height) + (2 * self.padding) + (2 * self.border_width))
+			return int(round(self.height * self.parent.actual_height) + 2 * (self.padding + self.border_width))
 		else:
-			return int(self.height + (2 * self.padding) + (2 * self.border_width))
+			return int(self.height + 2 * (self.padding + self.border_width))
+	
+	@property
+	def available_width(self):
+		return self.actual_width - 2 * (self.padding + self.border_width)
+	
+	@property
+	def available_height(self):
+		return self.actual_height - 2 * (self.padding + self.border_width)
 	
 	@property
 	def actual_height(self):
-		# TODO: Overflow rules; clip, cull
-		return self.requested_height if self.requested_height <= self.parent.actual_height else self.parent.actual_height
+		return self.requested_height if self.requested_height <= self.parent.available_height else self.parent.available_height
 	
 	@property
 	def actual_width(self):
-		# TODO: Overflow rules
-		return self.requested_width if self.requested_width <= self.parent.actual_width else self.parent.actual_width
+		return self.requested_width if self.requested_width <= self.parent.available_width else self.parent.available_width
 	
 	@property
 	def requested_x(self):
 		if type(self.x) is types.FloatType:
-			return int(round(self.x * self.parent.actual_width))
+			return int(round(self.x * self.parent.actual_width)) + self.parent.padding + self.parent.border_width
 		else:
-			return int(self.x)
+			return int(self.x) + self.parent.padding + self.parent.border_width
 	
 	@property
 	def requested_y(self):
 		if type(self.y) is types.FloatType:
-			return int(round(self.y * self.parent.actual_height))
+			return int(round(self.y * self.parent.actual_height)) + self.parent.padding + self.parent.border_width
 		else:
-			return int(self.y)
+			return int(self.y) + self.parent.padding + self.parent.border_width
 	
 	@property
 	def actual_x(self):
@@ -204,6 +219,11 @@ class Window(object):
 		rect.height -= int(2 * (self.padding + self.border_width))
 		rect.width -= int(2 * (self.padding + self.border_width))
 		return rect
+	
+	def centre(self):
+		""" Centre window within parent """
+		self.x = (self.parent.actual_width / 2) - (self.actual_width / 2)
+		self.y = (self.parent.actual_height / 2) - (self.actual_height / 2)
 	
 	def draw(self):
 		"""
@@ -375,19 +395,20 @@ class RootWindow(Window):
 				window.redraw = False
 			except NotImplementedError:
 				pass
-			
-		if window.surface is not None:
-			if (window.surface.get_height() > window.content_rect.height
-				or window.surface.get_width() > window.content_rect.width):
-				# If the window's surface exceeds the allocated space
-				# clip it down to correct size. Does mean is surface_area
-				# specifies an area smaller than the content_rect it will
-				# be ignored.
-				surface = pygame.Surface(window.content_rect.size)
-				surface.blit(window.surface, (0, 0), window.surface_area)
-				self.surface.blit(surface, window.content_rect)
-			else:
-				self.surface.blit(window.surface, window.content_rect, window.surface_area)
+		
+		if window.content_rect.width > 0  and window.content_rect.height > 0:
+			if window.surface is not None:
+				if (window.surface.get_height() > window.content_rect.height
+					or window.surface.get_width() > window.content_rect.width):
+					# If the window's surface exceeds the allocated space
+					# clip it down to correct size. Does mean is surface_area
+					# specifies an area smaller than the content_rect it will
+					# be ignored.
+					surface = pygame.Surface(window.content_rect.size)
+					surface.blit(window.surface, (0, 0), window.surface_area)
+					self.surface.blit(surface, window.content_rect)
+				else:
+					self.surface.blit(window.surface, window.content_rect, window.surface_area)
 			
 	def draw(self):
 		
