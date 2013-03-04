@@ -9,6 +9,17 @@ class Label(pygame.gui.window.Window):
 		pygame.gui.window.Window.__init__(self, parent, **kwargs)
 		
 		self.text = unicode(kwargs.get("text", ""))
+		self.bold = kwargs.get("bold", False)
+		self.italic = kwargs.get("italic", False)
+		self.underline = kwargs.get("underline", False)
+	
+	@property
+	def font(self):
+		font = pygame.gui.window.Window.font.fget(self)
+		font.set_bold(self.bold)
+		font.set_italic(self.italic)
+		font.set_underline(self.underline)
+		return font
 	
 	@property
 	def requested_width(self):

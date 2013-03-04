@@ -115,8 +115,13 @@ class Window(object):
 				Window._font_cache[font_config] = pygame.font.Font(*font_config)
 			except IOError:
 				Window._font_cache[font_config] = pygame.font.SysFont(*font_config)
-			
-		return Window._font_cache[font_config]
+		
+		font = Window._font_cache[font_config]
+		font.set_bold(False)
+		font.set_italic(False)
+		font.set_underline(False)
+		
+		return font
 	
 	@font.setter
 	def font(self, values):
