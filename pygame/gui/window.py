@@ -435,7 +435,27 @@ class RootWindow(Window):
 			if self.debug_draw:
 				pygame.draw.rect(self.surface, (0, 255, 0), window.rect, 1)
 				pygame.draw.rect(self.surface, (0, 0, 255), window.content_rect, 1)
+
+class SurfaceWindow(Window):
+	"""
+		Simple wrapper around PyGame's Surface. Takes a surface and
+		displays it within the window. Overides default width and
+		height values to be those of the source surface.
+	"""
 	
+	def __init__(self, parent, source, **kwargs):
+		Window.__init__(self, parent, **kwargs)
+		
+		self.source_surface = source
+		
+		if "width" not in kwargs:
+			self.width = source.get_width()
+		if "height" not in kwargs:
+			self.height = source.get_height()
+		
+	def draw(self):
+		self.surface = pygame.transform.smoothscale(self.source_surface, (self.actual_width, self.actual_height))
+		
 class ScrollableWindow(Window):
 	
 	SCROLLUP = generate_event_id()
