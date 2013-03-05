@@ -32,8 +32,6 @@ class Entry(pygame.gui.window.Window):
 			if len(self.buffer) < self.max_length or self.max_length < 0:
 				self.buffer += unicode
 	
-		self.redraw = True
-	
 	def draw(self):
 		text = self.font.render(self.buffer, self.font_aa, self.font_colour, self.background)
 		text_rect = text.get_rect()

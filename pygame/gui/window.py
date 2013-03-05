@@ -74,7 +74,11 @@ class Window(object):
 		self.font_colour = kwargs.get("font_colour", self.__class__.default_font_colour)
 		self.font_size = kwargs.get("font_size", self.__class__.default_font_size)
 		self.font_aa = kwargs.get("font_aa", self.__class__.default_font_aa)
-		
+	
+	def __setattr__(self, attr, value):
+		object.__setattr__(self, "redraw", True)
+		object.__setattr__(self, attr, value)
+	
 	def _print_graph(self, indent=0):
 		
 		print "{}{} ({}, {}) {}x{}".format(
