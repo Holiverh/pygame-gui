@@ -91,6 +91,16 @@ class Window(object):
 		for child in self.children:
 			child._print_graph(indent+2)
 	
+	def paint_order(self):
+		
+		windows = []
+		
+		for child in self.children:
+			windows.append(child)
+			windows.extend(child.paint_order())
+		
+		return windows
+		
 	@property
 	def decendants(self):
 		windows = self.children[:]
@@ -421,7 +431,7 @@ class RootWindow(Window):
 			
 	def draw(self):
 		
-		for window in self.decendants:
+		for window in self.paint_order():
 			try:
 				self.draw_window_background(window)
 				self.draw_window_contents(window)
