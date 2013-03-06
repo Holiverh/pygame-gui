@@ -3,6 +3,7 @@ import logging
 log = logging.getLogger(__name__)
 
 import types
+import inspect
 
 import pygame
 
@@ -11,6 +12,10 @@ def generate_event_id():
 	global _current_event_id
 	_current_event_id += 1
 	return _current_event_id
+
+def explicit_window_reference(func):
+	func.require_explicit = True
+	return func
 
 class Window(object):
 	
@@ -24,6 +29,10 @@ class Window(object):
 	KEYPRESS = generate_event_id()
 	MOUSEDOWN = generate_event_id()
 	MOUSEUP = generate_event_id()
+	
+	# Triggered when an attribute is changed that represents or
+	# influences a dimension of the window (position and available space)
+	RECONFIGURE = generate_event_id()
 	
 	BORDER_STYLE_SOLID = 1
 	BORDER_STYLE_INSET = 2
@@ -78,6 +87,8 @@ class Window(object):
 	def __setattr__(self, attr, value):
 		object.__setattr__(self, "redraw", True)
 		object.__setattr__(self, attr, value)
+		if attr in {"width", "height", "x", "y", "padding", "border_width"}:
+			self.trigger(Window.RECONFIGURE)
 	
 	def _print_graph(self, indent=0):
 		
@@ -263,8 +274,23 @@ class Window(object):
 	def trigger(self, event_type, *args):
 		if event_type in self.callbacks:
 			for callback in self.callbacks[event_type]:
-				callback(*args)
-	
+				
+				# Because methods bound to this object will implicitly
+				# recieve the 'self' reference when called, we customise
+				# the parameters as to omit the Window/self reference
+				# which we'd otherwise pass as the first parameter.
+				# This behaviour can be overidden by using the
+				# @explicit_window_reference decorator on the method
+				# which will mean the 'self' and window (even if it
+				# is 'self') references are passed as parameters.
+				if inspect.ismethod(callback):
+					if callback.im_self is self and not hasattr(callback, "require_explicit"):
+						callback(*args)
+					else:
+						callback(self, *args)
+				else:
+					callback(self, *args)
+
 class RootWindow(Window):
 	
 	def __init__(self):
