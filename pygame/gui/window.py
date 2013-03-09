@@ -6,6 +6,7 @@ import types
 import inspect
 
 import pygame
+import pygame.gui.poser
 
 _current_event_id = -1
 def generate_event_id():
@@ -89,7 +90,7 @@ class Window(object):
 		object.__setattr__(self, attr, value)
 		if attr in {"width", "height", "x", "y", "padding", "border_width"}:
 			self.trigger(Window.RECONFIGURE)
-	
+
 	def _print_graph(self, indent=0):
 		
 		print "{}{} ({}, {}) {}x{}".format(
@@ -249,6 +250,10 @@ class Window(object):
 		rect.height -= int(2 * (self.padding + self.border_width))
 		rect.width -= int(2 * (self.padding + self.border_width))
 		return rect
+	
+	@property
+	def pose(self):
+		return pygame.gui.poser.Poser(self)
 	
 	def centre(self):
 		""" Centre window within parent """
